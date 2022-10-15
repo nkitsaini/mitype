@@ -43,7 +43,11 @@ class App:
         self.tokens = self.text.split()
 
         # Squash multiple spaces, tabs, newlines to single space
-        self.text = " ".join(self.tokens)
+        self.text = " ".join(
+            [c for c in self.text.replace("\t", " ").split(" ") if c != ""]
+        )
+        self.text = "\n".join(self.text.split("\n"))
+
         self.text_backup = self.text
 
         # Current typed word and entire string
@@ -106,7 +110,7 @@ class App:
         This is where the infinite loop is executed to continuously serve events.
 
         Args:
-            win (any): Curses window object.
+                win (any): Curses window object.
         """
         # Initialize windows
         self.initialize(win)
@@ -153,7 +157,7 @@ class App:
         """Configure the initial state of the curses interface.
 
         Args:
-            win (any): Curses window.
+                win (any): Curses window.
         """
         self.window_height, self.window_width = self.get_dimensions(win)
 
@@ -195,7 +199,7 @@ class App:
         """Print setup text at beginning of each typing session.
 
         Args:
-            win (any): Curses window object.
+                win (any): Curses window object.
         """
         win.addstr(0, 0, f" ID:{self.text_id} ", self.Color.CYAN)
         win.addstr(0, self.window_width // 2 - 4, " MITYPE ", self.Color.BLUE)
@@ -213,8 +217,8 @@ class App:
         """Clear a line on the window.
 
         Args:
-            win (any): Curses window.
-            line (int): Line number.
+                win (any): Curses window.
+                line (int): Line number.
         """
         # Cursor advances to next cell after the character is printed
         # This causes scroll with addstr on the last line which is disabled
@@ -225,7 +229,7 @@ class App:
         """Report on typing session results.
 
         Args:
-            win (any): Curses window.
+                win (any): Curses window.
         """
         self.clear_line(win, self.number_of_lines_to_print_text)
         self.clear_line(win, self.number_of_lines_to_print_text + 2)
@@ -272,7 +276,7 @@ class App:
         Display stats.
 
         Args:
-            win (any): Curses window.
+                win (any): Curses window.
         """
         # Highlight mistyped characters
         for i in self.mistyped_keys:
@@ -350,8 +354,8 @@ class App:
         """Start recording typing session progress.
 
         Args:
-            win (any): Curses window.
-            key (str): First typed character of the session.
+                win (any): Curses window.
+                key (str): First typed character of the session.
         """
         # Note start time when first valid key is pressed
         if not self.first_key_pressed and is_valid_initial_key(key):
@@ -366,7 +370,7 @@ class App:
 
         self.key_strokes.append([time.time(), key])
 
-        self.print_realtime_wpm(win)
+        # self.print_realtime_wpm(win)
 
         self.key_printer(win, key)
 
@@ -375,10 +379,10 @@ class App:
         """Retrieve next character of text input.
 
         Args:
-            win (any): Curses window.
+                win (any): Curses window.
 
         Returns:
-            str: Value of typed key.
+                str: Value of typed key.
         """
         key = ""
         try:
@@ -393,14 +397,15 @@ class App:
             return ""
 
     def key_printer(self, win, key):
+
         """Print required key to terminal.
 
         Args:
-            win (any): Curses window object.
-            key (str): Individual characters are returned as 1-character
-                strings, and special keys such as function keys
-                return longer strings containing a key name such as
-                KEY_UP or ^G.
+                win (any): Curses window object.
+                key (str): Individual characters are returned as 1-character
+                        strings, and special keys such as function keys
+                        return longer strings containing a key name such as
+                        KEY_UP or ^G.
         """
         # Reset test
         if is_escape(key):
@@ -426,18 +431,26 @@ class App:
             if self.current_word != "":
                 self.check_word()
 
+        elif key == "\n" and len(self.current_word) < self.current_word_limit:
+            self.total_chars_typed += 1
+            print("cw", self.current_word)
+            if self.current_word != "":
+                self.check_word("\n")
+            print("cw", self.current_word)
+
         elif is_valid_initial_key(key):
             self.appendkey(key)
             self.total_chars_typed += 1
 
         # Update state of window
-        self.update_state(win)
+        if key != "":
+            self.update_state(win)
 
     def resize(self, win):
         """Respond to window resize events.
 
         Args:
-            win (any): Curses window.
+                win (any): Curses window.
         """
         win.clear()
 
@@ -454,7 +467,7 @@ class App:
         """Print the bottom stats bar after each run.
 
         Args:
-            win (any): Curses window.
+                win (any): Curses window.
         """
         win.addstr(
             self.window_height - 1,
@@ -477,7 +490,7 @@ class App:
         """Print realtime wpm during the test.
 
         Args:
-            win (any): Curses window.
+                win (any): Curses window.
         """
         current_wpm = 0
         total_time = mitype.timer.get_elapsed_minutes_since_first_keypress(
@@ -500,7 +513,7 @@ class App:
         """Play out a recording of the user's last session.
 
         Args:
-            win (any): Curses window.
+                win (any): Curses window.
         """
         win.clear()
         self.print_stats(win)
@@ -566,8 +579,8 @@ class App:
         """Load next or previous text snippet from database.
 
         Args:
-            win (any): Curses window.
-            value (int): value to increase or decrement the text ID by.
+                win (any): Curses window.
+                value (int): value to increase or decrement the text ID by.
         """
         if isinstance(self.text_id, str):
             return
@@ -590,10 +603,10 @@ class App:
         """Get the height and width of terminal.
 
         Args:
-            win (any): Curses window object.
+                win (any): Curses window object.
 
         Returns:
-            (int, int): Tuple of height and width of terminal window.
+                (int, int): Tuple of height and width of terminal window.
         """
         return win.getmaxyx()
 
@@ -611,7 +624,7 @@ class App:
         """Append a character to the end of the current word.
 
         Args:
-            key (key): Character to append.
+                key (key): Character to append.
         """
         if len(self.current_word) < self.current_word_limit:
             self.current_word += key
@@ -637,13 +650,17 @@ class App:
                 self.current_word = self.current_word[:-diff]
                 self.current_string = self.current_string[:-diff]
 
-    def check_word(self):
+    def check_word(self, key=" "):
         """Accept finalized word."""
         spc = get_space_count_after_ith_word(len(self.current_string), self.text)
         if self.current_word == self.tokens[self.token_index]:
+            if key == "\n":
+                print("match")
             self.token_index += 1
             self.current_word = ""
-            self.current_string += spc * " "
+            self.current_string += spc * key
         else:
-            self.current_word += " "
-            self.current_string += " "
+            if key == "\n":
+                print("no match")
+            self.current_word += key
+            self.current_string += key
